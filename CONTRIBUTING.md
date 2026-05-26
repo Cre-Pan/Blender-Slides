@@ -1,22 +1,19 @@
 # Contributing
 
-Contributions are welcome through GitHub Issues and Pull Requests.
+Thanks for your interest in improving Slides Pro.
 
-## Good issue reports
+## Good contributions
 
-A good issue includes:
+- Bug reports with clear reproduction steps.
+- Small fixes that keep the add-on simple and reliable.
+- UI/UX improvements for the presentation workflow.
+- Documentation improvements.
+- Compatibility fixes for newer Blender versions.
 
-- A clear title.
-- A short explanation of the problem.
-- Steps to reproduce it.
-- Blender version and operating system.
-- Screenshots, sample files, or console output when useful.
+## Development notes
 
-## Pull requests
-
-Before opening a pull request:
-
-1. Keep the code focused on one change.
-2. Avoid unrelated UI or behavior changes.
-3. Test the add-on in a clean Blender installation.
-4. Make sure no handlers are registered at startup unless strictly necessary.
+- Keep the extension title as **Slides Pro**.
+- Do not register presentation playback handlers on startup.
+- Register playback handlers only from manual presentation operators.
+- Remove handlers when playback stops or when the add-on is unregistered.
+- Keep Gumroad out of the public bug reporting workflow.

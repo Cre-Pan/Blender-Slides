@@ -1,10 +1,16 @@
 # Support
 
-For bugs and feature requests, please use GitHub Issues.
+Please use GitHub Issues for public bug reports and feature requests.
 
-Before opening a bug report, please check whether a similar issue already exists.
+Gumroad can be used as a download or release page, but it is not a good place for bug tracking because users cannot easily discuss issues publicly or help each other.
 
-When reporting a bug, include:
+## Before opening an issue
+
+Please check whether a similar issue already exists.
+
+## Bug reports
+
+Include:
 
 - Blender version
 - Operating system
@@ -13,6 +19,12 @@ When reporting a bug, include:
 - Expected result
 - Actual result
 - Console error, if available
-- Small test files, if possible
+- Screenshot or screen recording, if useful
 
-For general discussion, workflow questions, and community feedback, use the linked Blender Artists forum thread.
+## Feature requests
+
+Include:
+
+- What problem the feature would solve
+- How you would use it during a presentation workflow
+- Any mockup, reference, or example scene, if available

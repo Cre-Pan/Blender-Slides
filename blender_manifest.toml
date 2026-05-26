@@ -1,0 +1,17 @@
+schema_version = "1.0.0"
+
+id = "slides_pro"
+version = "1.5.1"
+name = "Slides Pro"
+tagline = "Create slide-based presentations in the 3D viewport"
+author = "Alessandro Pannoli"
+maintainer = "Alessandro Pannoli"
+
+blender_version_min = "4.5.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+type = "add-on"
+
+website = "https://github.com/AlessandroPannoli/slides-pro"
+
+tags = ["3D View", "Animation", "Scene", "User Interface"]
