@@ -1,17 +1,26 @@
 schema_version = "1.0.0"
-
 id = "slides_pro"
-version = "1.5.1"
-name = "Slides Pro"
-tagline = "Create slide-based presentations in the 3D viewport"
-author = "Alessandro Pannoli"
+version = "1.6.0"
+name = "Slides PRO"
+tagline = "Create and play slide-based presentations in the 3D View"
 maintainer = "Alessandro Pannoli"
-
-blender_version_min = "4.5.0"
-
-license = ["SPDX:GPL-3.0-or-later"]
 type = "add-on"
-
+tags = ["3D View"]
+blender_version_min = "4.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
 website = "https://github.com/AlessandroPannoli/slides-pro"
+copyright = ["2026 Alessandro Pannoli"]
 
-tags = ["3D View", "Animation", "Scene", "User Interface"]
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  ".*",
+  "*.zip",
+  "*.rar",
+  "*.pyc",
+  "*.blend1",
+  "README*",
+  "CHANGELOG*",
+  "SUPPORT*",
+  "EXTENSION_SUBMISSION_TEXTS.md",
+]

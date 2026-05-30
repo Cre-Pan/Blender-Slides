@@ -1,19 +1,18 @@
 # Contributing
 
-Thanks for your interest in improving Slides Pro.
+Contributions, bug reports, and feature suggestions are welcome.
 
-## Good contributions
+Before opening a pull request:
 
-- Bug reports with clear reproduction steps.
-- Small fixes that keep the add-on simple and reliable.
-- UI/UX improvements for the presentation workflow.
-- Documentation improvements.
-- Compatibility fixes for newer Blender versions.
+1. Test the add-on in a supported Blender version.
+2. Keep the extension package minimal.
+3. Avoid adding unnecessary files to the Blender Extensions build.
+4. Keep the manifest tag list limited to `3D View`.
+5. Do not register playback handlers on startup.
 
-## Development notes
+For Blender Extensions builds, the final zip should contain only:
 
-- Keep the extension title as **Slides Pro**.
-- Do not register presentation playback handlers on startup.
-- Register playback handlers only from manual presentation operators.
-- Remove handlers when playback stops or when the add-on is unregistered.
-- Keep Gumroad out of the public bug reporting workflow.
+```text
+__init__.py
+blender_manifest.toml
+```

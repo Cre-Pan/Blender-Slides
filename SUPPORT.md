@@ -1,30 +1,14 @@
 # Support
 
-Please use GitHub Issues for public bug reports and feature requests.
-
-Gumroad can be used as a download or release page, but it is not a good place for bug tracking because users cannot easily discuss issues publicly or help each other.
-
-## Before opening an issue
-
-Please check whether a similar issue already exists.
-
-## Bug reports
+Please report bugs and feature requests through GitHub Issues.
 
 Include:
 
 - Blender version
 - Operating system
-- Slides Pro version
-- Steps to reproduce
-- Expected result
-- Actual result
+- Slides PRO version
+- Steps to reproduce the issue
 - Console error, if available
-- Screenshot or screen recording, if useful
+- A small example `.blend` file, if useful
 
-## Feature requests
-
-Include:
-
-- What problem the feature would solve
-- How you would use it during a presentation workflow
-- Any mockup, reference, or example scene, if available
+Gumroad or other download pages are not used as public bug-reporting platforms.

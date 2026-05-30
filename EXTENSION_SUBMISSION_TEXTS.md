@@ -1,42 +1,66 @@
 # Blender Extensions submission texts
 
-## Extension title
+## Name
 
-Slides Pro
+Slides PRO
 
 ## Tagline
 
-Create PowerPoint-style presentations inside the 3D View
+Create and play slide-based presentations in the 3D View
 
 ## Description
 
-Slides Pro is a PowerPoint-style presentation manager for Blender scenes.
+Slides PRO is a presentation workflow add-on for the 3D View.
 
-It lets artists, teachers, students, and presenters build a live slide deck directly in Blender. Each slide can have its own frame range, camera, notes, checkpoints, and transition timing, so a scene can be presented as a structured deck without exporting it to a separate presentation app.
+It allows users to build and play slide-based presentations directly inside a scene. Users can use cameras, timeline ranges, text, objects, lights, images, annotations, notes, and scene elements as part of a visual presentation.
 
 Main features:
 
-- Create and manage slides from the 3D View sidebar
-- Set frame ranges for each slide
-- Assign a camera to each slide
-- Add presenter notes as a viewport overlay
-- Add checkpoints to pause playback at specific frames
-- Navigate with smart next/previous controls
-- Use hard-skip controls to jump without transitions
-- Open a clean projection window for presenting
-- Use keyboard shortcuts during playback
-- Start playback handlers only when the presentation is launched manually
+- Create and manage slide-based presentations
+- Use camera views as slide framing
+- Navigate between slides
+- Start and stop presentation playback manually
+- Add and show speaker notes
+- Add checkpoints to pause during a slide
+- Select a slide and jump to its frame in the timeline
+- Use visual tags to organize slides
+- Toggle a clean presentation view
+- Toggle Rendered/Solid View from the controller
+- Open a dedicated projection window
+
+Slides PRO is useful for portfolio presentations, project pitches, visual lessons, art and design reviews, storyboard presentations, concept presentations, creative talks, and scene-based demonstrations.
 
 ## Version history
 
-1.5.1
+1.6.0
 
-Changed:
-- Renamed the extension to Slides Pro to comply with Blender Extensions naming rules.
-- Updated the description to explain the presentation workflow clearly.
-- Moved public support and bug reports to GitHub Issues.
+Improved UI and Blender Extensions preparation update.
+
+Added:
+- Cleaner slide list layout
+- Compact slide rows with active slide indicator
+- Visual color tags for slides
+- Selected slide details panel
+- Add/Delete slide controls above the slide list
+- Automatic jump to the selected slide frame when choosing a slide from the list
+- Clean View overlay toggle for presentation mode
+- Rendered/Solid View toggle in the controller
+- Safer note handling for empty and multiple notes
+
+Improved:
+- Better UI for slide management
+- Better alignment for Title and Note fields
+- Cleaner notes layout with add/remove note buttons
+- More compact slide rows for projects with many slides
+- Simpler checkpoint display
+- More readable controller layout
+- Better presentation workflow inside the 3D View
 
 Fixed:
-- Removed startup registration of the notes draw handler.
-- Presentation handlers are now enabled only when the user starts presentation playback manually.
-- Presentation handlers are removed when playback stops or when the add-on is disabled.
+- Notes no longer disappear when empty
+- Removing a note now deletes the correct note row
+- Slide selection from the list now updates the timeline position
+- Overlay toggle now keeps notes visible while hiding unnecessary viewport overlays
+- Registration process cleaned up for Blender Extensions
+- Extension package now includes only the files required to run the add-on
+- Manifest now uses only the 3D View tag

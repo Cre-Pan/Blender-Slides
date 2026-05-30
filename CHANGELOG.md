@@ -1,30 +1,37 @@
 # Changelog
 
-## 1.5.1
+## 1.6.0
 
-### Changed
-
-- Renamed the extension from **Blender Slides PRO** to **Slides Pro** to comply with Blender Extensions naming rules.
-- Updated the extension description to explain that the add-on is a PowerPoint-style presentation manager for Blender scenes.
-- Replaced Gumroad as the public support channel with GitHub Issues.
-- Moved the general product description out of the version history and into the proper description/README area.
-
-### Fixed
-
-- Removed startup registration of the notes draw handler.
-- Presentation handlers now start only when the user manually starts a presentation.
-- Presentation handlers are removed when playback is stopped or when the add-on is disabled.
-
-## 1.5.0
+Improved UI and Blender Extensions preparation update.
 
 ### Added
 
-- Slide list management from the 3D View sidebar.
-- Per-slide frame ranges.
-- Per-slide camera assignment.
-- Slide notes.
-- Checkpoints that pause playback at specific frames.
-- Smart next/previous navigation.
-- Hard-skip navigation without transitions.
-- Projection window for clean presentation playback.
-- Keyboard shortcuts for slide navigation.
+- Cleaner slide list layout
+- Compact slide rows with active slide indicator
+- Visual color tags for slides
+- Selected slide details panel
+- Add/Delete slide controls above the slide list
+- Automatic jump to the selected slide frame when choosing a slide from the list
+- Clean View overlay toggle for presentation mode
+- Rendered/Solid View toggle in the controller
+- Safer note handling for empty and multiple notes
+
+### Improved
+
+- Better UI for slide management
+- Better alignment for Title and Note fields
+- Cleaner notes layout with add/remove note buttons
+- More compact slide rows for projects with many slides
+- Simpler checkpoint display
+- More readable controller layout
+- Better presentation workflow inside the 3D View
+
+### Fixed
+
+- Notes no longer disappear when empty
+- Removing a note now deletes the correct note row
+- Slide selection from the list now updates the timeline position
+- Overlay toggle now keeps notes visible while hiding unnecessary viewport overlays
+- Registration process cleaned up for Blender Extensions
+- Extension package now includes only the files required to run the add-on
+- Manifest now uses only the 3D View tag

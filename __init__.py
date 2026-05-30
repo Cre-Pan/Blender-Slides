@@ -1,33 +1,75 @@
 bl_info = {
-    "name": "Slides Pro",
+    "name": "Slides PRO Layout Test",
     "author": "Alessandro Pannoli",
-    "version": (1, 5, 1),
-    "blender": (4, 5, 0),
-    "location": "View3D > Sidebar (N-Panel) > Slides Pro",
-    "description": "Create and control slide-based presentations from the 3D View sidebar.",
-    "warning": "",
-    "doc_url": "https://github.com/AlessandroPannoli/slides-pro",
+    "version": (1, 6, 0),
+    "blender": (4, 2, 0),
+    "location": "View3D > Sidebar > Slides PRO",
+    "description": "Single-file test build for adjusting the Slides PRO layout inside the 3D View.",
     "category": "3D View",
 }
+
+ADDON_NAME = "Slides PRO"
+ADDON_VERSION = (1, 6, 0)
 
 import bpy
 import blf
 from bpy.props import (
-    IntProperty, 
-    StringProperty, 
-    BoolProperty, 
-    CollectionProperty, 
+    IntProperty,
+    StringProperty,
+    BoolProperty,
+    CollectionProperty,
     PointerProperty,
     EnumProperty
 )
+TAG_ICON_ITEMS = (
+    ('SELECT_SET', "Default", "Default slide tag", 'CHECKBOX_DEHLT', 0),
+    ('STRIP_COLOR_01', "Red", "Red tag", 'STRIP_COLOR_01', 1),
+    ('STRIP_COLOR_02', "Orange", "Orange tag", 'STRIP_COLOR_02', 2),
+    ('STRIP_COLOR_03', "Yellow", "Yellow tag", 'STRIP_COLOR_03', 3),
+    ('STRIP_COLOR_04', "Green", "Green tag", 'STRIP_COLOR_04', 4),
+    ('STRIP_COLOR_05', "Blue", "Blue tag", 'STRIP_COLOR_05', 5),
+    ('STRIP_COLOR_06', "Purple", "Purple tag", 'STRIP_COLOR_06', 6),
+    ('STRIP_COLOR_07', "Magenta", "Magenta tag", 'STRIP_COLOR_07', 7),
+    ('STRIP_COLOR_08', "Brown", "Brown tag", 'STRIP_COLOR_08', 8),
+    ('STRIP_COLOR_09', "Gray", "Gray tag", 'STRIP_COLOR_09', 9),
+)
+
+TAG_ICON_MAP = {item[0]: item[3] for item in TAG_ICON_ITEMS}
+
+def tag_icon(tag):
+    return TAG_ICON_MAP.get(tag, 'CHECKBOX_DEHLT')
+
 
 class CheckpointFrame(bpy.types.PropertyGroup):
     frame: IntProperty(name="Frame")
-    name: StringProperty(name="Name", default="Checkpoint") 
-    tag: StringProperty(name="Tag", default='RADIOBUT_OFF')      
+    name: StringProperty(name="Name", default="Checkpoint")
+    tag: EnumProperty(name="Tag", description="Visual tag", items=TAG_ICON_ITEMS, default='SELECT_SET')
 
-class NoteLine(bpy.types.PropertyGroup): 
+class NoteLine(bpy.types.PropertyGroup):
     text: StringProperty(name="Note", default="")
+
+
+def ensure_slide_has_note(slide):
+    if slide is not None and len(slide.notes) == 0:
+        slide.notes.add().text = ""
+
+
+def update_slide_index(self, context):
+    slides = self.slides_collection
+    if slides and 0 <= self.slide_index < len(slides):
+        slide = slides[self.slide_index]
+        ensure_slide_has_note(slide)
+        self.frame_current = slide.loop_start
+        if slide.camera_object:
+            self.camera = slide.camera_object
+        force_ui_redraw(context)
+
+
+def ensure_scene_slide_notes(scene):
+    slides = getattr(scene, "slides_collection", None)
+    if slides:
+        for slide in slides:
+            ensure_slide_has_note(slide)
 
 
 def update_smart_transition(self, context):
@@ -37,7 +79,7 @@ def update_smart_transition(self, context):
         if slide == self:
             current_index = i
             break
-            
+
     if current_index > 0:
         prev_slide = slides[current_index - 1]
         new_transition = self.loop_start - prev_slide.loop_end - 1
@@ -55,15 +97,14 @@ class SlideItem(bpy.types.PropertyGroup):
     loop_start: IntProperty(name="Loop Start", default=1, min=1, update=update_smart_transition)
     loop_end: IntProperty(name="Loop End", default=80, min=1)
     transition: IntProperty(name="Transition", default=20, min=0)
-    notes: CollectionProperty(type=NoteLine) 
-    tag: StringProperty(name="Tag", default='RADIOBUT_OFF') 
+    notes: CollectionProperty(type=NoteLine)
+    tag: EnumProperty(name="Tag", description="Visual tag", items=TAG_ICON_ITEMS, default='SELECT_SET')
     camera_object: PointerProperty(name="Camera", type=bpy.types.Object, poll=poll_camera)
     is_collapsed: BoolProperty(name="Collapsed", default=True)
     checkpoint_frames: CollectionProperty(type=CheckpointFrame)
-    
-    # --- MODIFICA 4: La tendina "Frames" parte chiusa ---
+
     is_frames_collapsed: BoolProperty(name="Collapse Frames", default=True)
-    
+
 def calc_transition(slides, current_index):
     if current_index + 1 >= len(slides): return 0
     cur_end = slides[current_index].loop_end
@@ -71,7 +112,6 @@ def calc_transition(slides, current_index):
     return max(0, next_start - cur_end)
 
 def force_ui_redraw(context):
-    """Forces a redraw of all 3D View UI spaces."""
     if context.screen:
         for area in context.screen.areas:
             if area.type == 'VIEW_3D':
@@ -84,13 +124,13 @@ def go_to_loop(scene, index):
     bpy.ops.screen.animation_cancel(restore_frame=False)
     unregister_transition_handler()
     unregister_loop_handler()
-    
+
     scene.is_transitioning = False
     scene.slide_transition_requested = False
     scene.slide_prev_requested = False
     scene.is_paused_at_checkpoint = False
     scene.next_checkpoint_index = 0
-    
+
     slides = scene.slides_collection
     if not slides or index >= len(slides):
         return
@@ -99,11 +139,12 @@ def go_to_loop(scene, index):
         s.is_collapsed = (i != index)
 
     slide = slides[index]
+    ensure_slide_has_note(slide)
     scene.frame_start = slide.loop_start
     scene.frame_end = slide.loop_end
     scene.frame_current = slide.loop_start
     scene.slide_index = index
-    
+
     if slide.camera_object:
         scene.camera = slide.camera_object
 
@@ -115,10 +156,10 @@ def play_transition_to_slide(scene, target_index):
     bpy.ops.screen.animation_cancel(restore_frame=False)
     unregister_loop_handler()
     scene.is_looping = False
-    
+
     scene.is_paused_at_checkpoint = False
     scene.next_checkpoint_index = 0
-    
+
     slides = scene.slides_collection
     predecessor_index = (target_index - 1) % len(slides)
     if target_index == 0 and predecessor_index == len(slides) - 1:
@@ -147,26 +188,26 @@ def play_transition_to_slide(scene, target_index):
     bpy.ops.screen.animation_play()
 
 def on_frame_change_LOOP_handler(scene, depsgraph):
-    if not scene.is_looping or scene.is_paused_at_checkpoint: 
+    if not scene.is_looping or scene.is_paused_at_checkpoint:
         return
 
     slides = scene.slides_collection
     current_index = scene.slide_index
-    if current_index < 0 or current_index >= len(slides): 
+    if current_index < 0 or current_index >= len(slides):
         return
-    
+
     is_at_end_of_loop = (scene.frame_current >= scene.frame_end)
-    
+
     slide = slides[current_index]
     if 0 <= scene.next_checkpoint_index < len(slide.checkpoint_frames):
         checkpoint = slide.checkpoint_frames[scene.next_checkpoint_index]
-        
+
         if scene.frame_current >= checkpoint.frame:
             bpy.ops.screen.animation_cancel(restore_frame=False)
             scene.is_paused_at_checkpoint = True
             scene.next_checkpoint_index += 1
             print(f"⏸ Paused at Checkpoint {scene.next_checkpoint_index} (Frame {checkpoint.frame})")
-            return 
+            return
 
     if scene.slide_transition_requested and is_at_end_of_loop:
         scene.slide_transition_requested = False
@@ -205,31 +246,30 @@ def draw_notes_callback():
     scene = context.scene
     region = getattr(context, 'region', None)
     space_data = getattr(context, 'space_data', None)
-    
-    # If we can't get region or space, bail out
+
     if region is None or space_data is None:
         return
-    
+
     if not space_data.overlay.show_overlays:
         return
-        
+
     if not scene.slide_show_notes:
         return
-        
+
     if not scene.slides_collection: return
     current_index = scene.slide_index
     if current_index >= len(scene.slides_collection): return
-    
+
     slide = scene.slides_collection[current_index]
     slide_title = slide.title
     title_size = scene.slide_title_fontsize
     note_size = scene.slide_note_fontsize
-    
+
     lines_to_draw = []
     for note_line in slide.notes:
         if note_line.text:
             lines_to_draw.extend(note_line.text.splitlines())
-            
+
     if not lines_to_draw and not slide_title: return
 
     font_id = 0
@@ -238,7 +278,6 @@ def draw_notes_callback():
     line_height_title = (title_size * 1.2)
     title_gap = (line_height_note * 0.2) if lines_to_draw and slide_title else 0
 
-    # --- Calcolo Dimensioni ---
     total_note_height = len(lines_to_draw) * line_height_note
     total_height = total_note_height + title_gap
     max_width = 0
@@ -252,17 +291,16 @@ def draw_notes_callback():
         title_width = blf.dimensions(font_id, f"{slide_title}:")[0]
         max_width = max(max_width, title_width)
         total_height += line_height_title
-        
-    # --- Calcolo Posizione (Anchor Point) ---
+
     pos_x = 0
-    pos_y_start = 0 # --- MODIFICA 1: pos_y_start ora è sempre il TOP del blocco
+    pos_y_start = 0
     align_right = False
 
     if scene.slide_notes_position == 'BOTTOM_LEFT':
         pos_x = margin
-        pos_y_start = margin + total_height # --- MODIFICA 1
+        pos_y_start = margin + total_height
         align_right = False
-    
+
     elif scene.slide_notes_position == 'TOP_LEFT':
         pos_x = margin
         pos_y_start = region.height - margin
@@ -270,7 +308,7 @@ def draw_notes_callback():
 
     elif scene.slide_notes_position == 'BOTTOM_RIGHT':
         pos_x = region.width - margin - max_width
-        pos_y_start = margin + total_height # --- MODIFICA 1
+        pos_y_start = margin + total_height
         align_right = True
 
     elif scene.slide_notes_position == 'TOP_RIGHT':
@@ -278,16 +316,15 @@ def draw_notes_callback():
         pos_y_start = region.height - margin
         align_right = True
 
-    # --- Disegno ---
-    
+
     def draw_line_with_shadow(fid, text, x, y, size):
         blf.size(fid, size)
-        
+
         draw_x = x
         if align_right:
             text_w = blf.dimensions(fid, text)[0]
             draw_x = x + (max_width - text_w)
-            
+
         blf.color(fid, 0.0, 0.0, 0.0, 0.5)
         blf.position(fid, draw_x + 1, y + 1, 0)
         blf.draw(fid, text)
@@ -295,41 +332,38 @@ def draw_notes_callback():
         blf.position(fid, draw_x, y, 0)
         blf.draw(fid, text)
 
-    # --- MODIFICA 1: Logica di disegno unificata (sempre Top-to-Bottom) ---
     current_y = pos_y_start
-    
+
     if slide_title:
         y_title = current_y - line_height_title
         draw_line_with_shadow(font_id, f"{slide_title}", pos_x, y_title, title_size)
         current_y = y_title - title_gap
     else:
-        current_y = pos_y_start # Non c'è titolo, partiamo dall'inizio
-        
+        current_y = pos_y_start
+
     blf.size(font_id, note_size)
     for i, line in enumerate(lines_to_draw):
-        # Disegna la linea i+1
         y = current_y - line_height_note * (i + 1)
         draw_line_with_shadow(font_id, line, pos_x, y, note_size)
-    # --- FINE MODIFICA 1 ---
 
 _notes_draw_handler = None
-        
+
 def register_notes_handler():
     global _notes_draw_handler
     if _notes_draw_handler is None:
         if hasattr(bpy.types, "SpaceView3D"):
             try:
                 _notes_draw_handler = bpy.types.SpaceView3D.draw_handler_add(
-                    draw_notes_callback, 
-                    (), 
-                    'WINDOW', 
+                    draw_notes_callback,
+                    (),
+                    'WINDOW',
                     'POST_PIXEL'
                 )
             except Exception as e:
-                print(f"Slides Pro: Could not attach to 3D View for notes. {e}")
+                print(f"Slides PRO: Could not attach to 3D View for notes. {e}")
         else:
-            print("Slides Pro: SpaceView3D type not available.")
-            
+            print("Slides PRO: SpaceView3D type not available.")
+
 def unregister_notes_handler():
     global _notes_draw_handler
     if _notes_draw_handler is not None:
@@ -364,7 +398,7 @@ class NEXT_SLIDE_OT_operator(bpy.types.Operator):
             bpy.ops.screen.animation_play()
             return {'FINISHED'}
         if context.scene.is_transitioning: return {'CANCELLED'}
-        context.scene.slide_prev_requested = False 
+        context.scene.slide_prev_requested = False
         context.scene.slide_transition_requested = True
         return {'FINISHED'}
 
@@ -398,16 +432,16 @@ class ADD_SLIDE_OT_operator(bpy.types.Operator):
             new_slide.loop_start = 1
             new_slide.loop_end = 80
         new_slide.title = f"Slide {new_index + 1}"
-        new_slide.notes.add().text = "Note..." 
-        
+        new_slide.notes.add().text = ""
+
         if context.space_data and context.space_data.type == 'VIEW_3D':
             if getattr(context.space_data, 'region_3d', None) and getattr(context.space_data.region_3d, 'view_perspective', '') == 'CAMERA':
                 if context.scene.camera:
                     new_slide.camera_object = context.scene.camera
         go_to_loop(context.scene, new_index)
-        
+
         force_ui_redraw(context)
-        
+
         return {'FINISHED'}
 
 class REMOVE_SLIDE_OT_operator(bpy.types.Operator):
@@ -426,8 +460,8 @@ class REMOVE_SLIDE_OT_operator(bpy.types.Operator):
                 go_to_loop(scene, new_index)
             else:
                 scene.frame_start = 1; scene.frame_end = 250; scene.frame_current = 1
-        
-        force_ui_redraw(context) 
+
+        force_ui_redraw(context)
         return {'FINISHED'}
 
 class GOTO_SLIDE_OT_operator(bpy.types.Operator):
@@ -517,7 +551,6 @@ class WINDOW_OT_new_projection(bpy.types.Operator):
             area = new_window.screen.areas[0]
         area.type = 'VIEW_3D'
         try:
-            # robustly find the VIEW_3D space in the area
             for space in area.spaces:
                 try:
                     if getattr(space, 'type', '') == 'VIEW_3D':
@@ -540,10 +573,106 @@ class WINDOW_OT_new_projection(bpy.types.Operator):
             bpy.ops.screen.screen_full_area(use_hide_panels=True)
         return {'FINISHED'}
 
+
+
+CLEAN_OVERLAY_BOOL_PROPS = (
+    "show_floor",
+    "show_axis_x",
+    "show_axis_y",
+    "show_axis_z",
+    "show_cursor",
+    "show_annotation",
+    "show_extras",
+    "show_relationship_lines",
+    "show_outline_selected",
+    "show_object_origins",
+    "show_object_origins_all",
+    "show_face_orientation",
+    "show_bones",
+    "show_motion_paths",
+    "show_statistics",
+    "show_text",
+    "show_indices",
+    "show_faces",
+    "show_face_center",
+    "show_edge_crease",
+    "show_edge_sharp",
+    "show_edge_bevel_weight",
+    "show_edge_seams",
+    "show_vertex_normals",
+    "show_split_normals",
+    "show_face_normals",
+    "show_extra_face_area",
+    "show_extra_indices",
+    "show_weight",
+    "show_occlude_wire",
+    "show_wireframes",
+)
+
+
+def set_clean_overlays(space, enable_clean_view):
+    overlay = getattr(space, "overlay", None)
+    if overlay is None:
+        return
+
+    try:
+        overlay.show_overlays = True
+    except Exception:
+        pass
+
+    for prop in CLEAN_OVERLAY_BOOL_PROPS:
+        if hasattr(overlay, prop):
+            try:
+                setattr(overlay, prop, not enable_clean_view)
+            except Exception:
+                pass
+
+class SLIDESPRO_OT_toggle_viewport_overlays(bpy.types.Operator):
+    bl_idname = "scene.slides_toggle_viewport_overlays"
+    bl_label = "Toggle Overlays"
+    bl_description = "Show or hide all Viewport Overlays in the current 3D View"
+
+    @classmethod
+    def poll(cls, context):
+        return bool(context.space_data and context.space_data.type == 'VIEW_3D')
+
+    def execute(self, context):
+        space = context.space_data
+        scene = context.scene
+        try:
+            scene.slides_clean_overlays_on = not scene.slides_clean_overlays_on
+            set_clean_overlays(space, scene.slides_clean_overlays_on)
+            if scene.slide_show_notes:
+                register_notes_handler()
+        except Exception:
+            self.report({'WARNING'}, "Viewport Overlays are not available here")
+            return {'CANCELLED'}
+        return {'FINISHED'}
+
+
+class SLIDESPRO_OT_toggle_rendered_view(bpy.types.Operator):
+    bl_idname = "scene.slides_toggle_rendered_view"
+    bl_label = "Toggle Rendered View"
+    bl_description = "Switch the current 3D View between Rendered and Solid shading"
+
+    @classmethod
+    def poll(cls, context):
+        return bool(context.space_data and context.space_data.type == 'VIEW_3D')
+
+    def execute(self, context):
+        space = context.space_data
+        try:
+            space.shading.type = 'SOLID' if space.shading.type == 'RENDERED' else 'RENDERED'
+        except Exception:
+            self.report({'WARNING'}, "Viewport shading mode is not available here")
+            return {'CANCELLED'}
+        return {'FINISHED'}
+
+
 class CLEAR_ANNOTATIONS_OT_operator(bpy.types.Operator):
     bl_idname = "scene.clear_annotations"
     bl_label = "Clear Annotations"
-    bl_description = "Clears all drawings (Blender 4.x+ system)"
+    bl_description = "Clears all annotation drawings"
 
     @classmethod
     def poll(cls, context):
@@ -563,24 +692,24 @@ class ADD_CHECKPOINT_OT_operator(bpy.types.Operator):
     bl_label = "Add Checkpoint"
     bl_description = "Adds a pause point at the current frame"
     slide_index: IntProperty()
-    
+
     def execute(self, context):
         slide = context.scene.slides_collection[self.slide_index]
         current_frame = context.scene.frame_current
-        
+
         if not (slide.loop_start < current_frame < slide.loop_end):
             self.report({'WARNING'}, "Checkpoint must be *inside* the loop (not at start/end)")
             return {'CANCELLED'}
         for cp in slide.checkpoint_frames:
             if cp.frame == current_frame:
                 return {'CANCELLED'}
-        
-        frames = sorted([(cp.frame, cp.name, cp.tag) for cp in slide.checkpoint_frames] + [(current_frame, "Checkpoint", 'RADIOBUT_OFF')])
+
+        frames = sorted([(cp.frame, cp.name, cp.tag) for cp in slide.checkpoint_frames] + [(current_frame, "Checkpoint", 'SELECT_SET')])
         slide.checkpoint_frames.clear()
         for f, n, t in frames:
             cp = slide.checkpoint_frames.add()
             cp.frame = f; cp.name = n; cp.tag = t
-            
+
         if getattr(context, 'region', None):
             context.region.tag_redraw()
         return {'FINISHED'}
@@ -594,45 +723,11 @@ class REMOVE_CHECKPOINT_OT_operator(bpy.types.Operator):
         slide = context.scene.slides_collection[self.slide_index]
         if 0 <= self.cp_index < len(slide.checkpoint_frames):
             slide.checkpoint_frames.remove(self.cp_index)
-            
+
         if getattr(context, 'region', None):
             context.region.tag_redraw()
         return {'FINISHED'}
 
-TAG_ICONS = ['NODE_SOCKET_VECTOR', 'SOLO_ON', 'RADIOBUT_OFF']
-
-class CYCLE_SLIDE_TAG_OT_operator(bpy.types.Operator):
-    bl_idname = "slide.cycle_tag"
-    bl_label = "Cycle Slide Tag"
-    bl_description = "Cycle a visual tag for this slide"
-    slide_index: IntProperty()
-    def execute(self, context):
-        slide = context.scene.slides_collection[self.slide_index]
-        try:
-            current_icon_index = TAG_ICONS.index(slide.tag)
-            next_index = (current_icon_index + 1) % len(TAG_ICONS)
-        except ValueError:
-            next_index = 0
-        slide.tag = TAG_ICONS[next_index]
-        return {'FINISHED'}
-
-class CYCLE_CHECKPOINT_TAG_OT_operator(bpy.types.Operator):
-    bl_idname = "checkpoint.cycle_tag"
-    bl_label = "Cycle Checkpoint Tag"
-    bl_description = "Cycle a visual tag for this checkpoint"
-    slide_index: IntProperty()
-    cp_index: IntProperty()
-    def execute(self, context):
-        slide = context.scene.slides_collection[self.slide_index]
-        if 0 <= self.cp_index < len(slide.checkpoint_frames):
-            cp = slide.checkpoint_frames[self.cp_index]
-            try:
-                current_icon_index = TAG_ICONS.index(cp.tag)
-                next_index = (current_icon_index + 1) % len(TAG_ICONS)
-            except ValueError:
-                next_index = 0
-            cp.tag = TAG_ICONS[next_index]
-        return {'FINISHED'}
 
 class ADD_NOTE_LINE_OT_operator(bpy.types.Operator):
     bl_idname = "slide.add_note_line"
@@ -652,114 +747,77 @@ class REMOVE_NOTE_LINE_OT_operator(bpy.types.Operator):
     note_index: IntProperty()
     def execute(self, context):
         slide = context.scene.slides_collection[self.slide_index]
-        if 0 <= self.note_index < len(slide.notes):
+        if len(slide.notes) <= 1:
+            ensure_slide_has_note(slide)
+            slide.notes[0].text = ""
+        elif 0 <= self.note_index < len(slide.notes):
             slide.notes.remove(self.note_index)
         if getattr(context, 'region', None):
             context.region.tag_redraw()
         return {'FINISHED'}
 
+
 class SLIDES_PT_impostazioni(bpy.types.Panel):
     bl_label = "Settings"
     bl_idname = "SCENE_PT_slides_impostazioni"
-    bl_space_type = 'VIEW_3D'; 
+    bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Slides Pro"; bl_order = 0
+    bl_category = "Slides PRO"
+    bl_order = 0
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw_header(self, context):
-        self.layout.label(text="", icon='PREFERENCES')
+        self.layout.label(text="", icon='PREFERENCES') ### icon: PREFERENCES
 
     def draw(self, context):
         layout = self.layout
         scene = context.scene
-        
-        box_notes = layout.box()
-        
-        row_notes_toggle = box_notes.row() 
-        row_notes_toggle.prop(scene, "slide_show_notes", text="Show / Hide Notes", icon='HIDE_OFF', toggle=True) 
-        
-        row_notes_pos = box_notes.row(align=True)
-        row_notes_pos.label(text="Note Position:", icon='MENU_PANEL')
-        row_notes_pos.prop(scene, "slide_notes_position", text="", expand=False)
-        
-        row_title = box_notes.row(align=True)
-        row_title.label(text="Title Size:", icon='SMALL_CAPS') 
-        row_title.prop(scene, "slide_title_fontsize", text=" ") 
 
-        row_note_size = box_notes.row(align=True)
-        row_note_size.label(text="Notes Size:", icon='FILE_TEXT') 
-        row_note_size.prop(scene, "slide_note_fontsize", text=" ") 
+        notes_box = layout.box()
+        col = notes_box.column(align=False)
+        col.label(text="Notes Overlay", icon='WORDWRAP_ON') ### icon: OVERLAY
+        col.separator()
 
-        box_info = layout.box()
-        row_info_header = box_info.row()
-        row_info_header.alignment = 'LEFT'
+        row = col.row(align=False)
+        row.prop(scene, "slide_show_notes", text="Show Notes", icon='HIDE_OFF', toggle=True) ### icon: HIDE_OFF
+        row.prop(scene, "slide_notes_position",  text="", icon='FILE_TEXT')
+
+        sizes = col.column(align=False)
+        row = sizes.row(align=False)
+        row.label(icon='SMALL_CAPS')
+        row.prop(scene, "slide_title_fontsize", text="Title Size")
+
+        row.label(icon='SYNTAX_OFF')
+        row.prop(scene, "slide_note_fontsize", text="Notes Size")
+        col.separator()
+
+        row = col.row(align=False)
+        row.label(text="Prev / Next Slide              Alt + ⬅ / ➡")
         
-        row_info_header.prop(scene, "slide_info_expanded", text="More info:", icon='INFO', emboss=False)
+        row = col.row(align=False)
+        row.label(text="Skip Transition        ⬆ + Alt + ⬅ / ➡ ")
+        col.separator()
 
-        if scene.slide_info_expanded:
-            col = box_info.column(align=True)
-            col.label(text="If u don't see Title or Notes check your Overlay :")
-            row = col.row(align=True)
-            row.alignment = 'LEFT'
-            row.label(text="From 3D Viewport press")
-            row.label(icon='OVERLAY')
-            row.label(text=" this icon.")
-            
-            col.label(text="......................................................................................................................................................................................................................................................................................")
-            
-            col.label(text="Shortcuts", icon='RESTRICT_SELECT_OFF')
-            
-            col.label(text="")
-            
-            row = col.row(align=True)
-            row.alignment = 'LEFT'
-            row.label(icon='BLANK1')
-            row.label(icon='BLANK1')
-            row.label(icon='EVENT_ALT')
-            row.label(text="   +")
-            row.label(icon='EVENT_LEFT_ARROW')
-            row.label(text=" =  Previous Slide")
-            
-            row = col.row(align=True)
-            row.alignment = 'LEFT'
-            row.label(icon='BLANK1')
-            row.label(icon='BLANK1')
-            row.label(icon='EVENT_ALT')
-            row.label(text="   +")
-            row.label(icon='EVENT_RIGHT_ARROW')
-            row.label(text=" =  Next Slide")
-            
-            row = col.row(align=True)
-            row.alignment = 'LEFT'
-            row.label(text=" ")
-            row.label(icon='EVENT_SHIFT')
-            row.label(text=" +")
-            row.label(icon='EVENT_ALT')
-            row.label(text="   +")
-            row.label(icon='EVENT_LEFT_ARROW')
-            row.label(text=" =  Skip Transition")
-            
-            row = col.row(align=True)
-            row.alignment = 'LEFT'
-            row.label(text=" ")
-            row.label(icon='EVENT_SHIFT')
-            row.label(text=" +")
-            row.label(icon='EVENT_ALT')
-            row.label(text="   +")
-            row.label(icon='EVENT_RIGHT_ARROW')
-            row.label(text=" =  Skip Transition")
-            
-            col.label(text="......................................................................................................................................................................................................................................................................................")
-            col.label(text=" ")
-            
-            row_credits = col.row(align=True)
-            row_credits.alignment = 'LEFT'
-            row_credits.label(text="Add-on created by Alessandro Pannoli.")
-            
-            row_credits = col.row(align=True)
-            row_credits.alignment = 'LEFT'
-            row_credits.label(icon='ERROR')
-            row_credits.label(text="Report bugs on GitHub Issues or public community forums.", icon='GHOST_DISABLED')
+        row = col.row(align=False)
+        row.label(icon='USER', text="Created by Alessandro Pannoli")
+
+
+class SLIDES_UL_slide_list(bpy.types.UIList):
+    bl_idname = "SLIDES_UL_slide_list"
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        scene = context.scene
+        slide = item
+
+        row = layout.row(align=False)
+
+        active_icon = 'RECORD_ON' if index == scene.slide_index else 'DOT'
+        row.label(text="", icon=active_icon) ### icon: active_icon
+
+        row.label(text="", icon=tag_icon(slide.tag)) ### icon: tag_icon(slide.tag)
+
+        title = slide.title if slide.title else "Untitled Slide"
+        row.label(text=f"{index + 1:02d} - {title}")
 
 
 class SLIDES_PT_elenco(bpy.types.Panel):
@@ -767,233 +825,277 @@ class SLIDES_PT_elenco(bpy.types.Panel):
     bl_idname = "SCENE_PT_slides_elenco"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Slides Pro"
+    bl_category = "Slides PRO"
     bl_order = 1
-    
+
     def draw_header(self, context):
-        self.layout.label(text="", icon='RESTRICT_VIEW_OFF')
-    
+        self.layout.label(text="a", icon='RESTRICT_VIEW_OFF') ### icon: RESTRICT_VIEW_OFF
+
+    def _draw_selected_slide_details(self, layout, scene, slide, index):
+        card = layout.column(align=True)
+
+        content = card.box()
+        col = content.column(align=False)
+
+        row_title = col.row(align=False)
+        title_label = row_title.column(align=False)
+        title_label.scale_x = 0.65
+        title_label.label(text="Title:")
+
+        title_field = row_title.column(align=False)
+        title_field.scale_x = 3.6
+        title_field.prop(slide, "title", text="", icon='SMALL_CAPS') ### icon: SMALL_CAPS
+
+        tag_field = row_title.column(align=False)
+        tag_field.scale_x = 1.5
+        tag_field.prop(slide, "tag", text="", icon_only=False)
+
+        if slide.notes:
+            for note_idx, note_line in enumerate(slide.notes):
+                row_note = col.row(align=False)
+
+                note_label = row_note.column(align=False)
+                note_label.scale_x = 0.65
+                note_label.label(text="Note:" if note_idx == 0 else f"Note {note_idx + 1}:")
+
+                note_field = row_note.column(align=False)
+                note_field.scale_x = 4.1
+                note_field.prop(note_line, "text", text="", icon='SYNTAX_OFF') ### icon: SYNTAX_OFF
+
+                buttons = row_note.row(align=True)
+                buttons.scale_x = 5
+
+                if note_idx == 0:
+                    op_add_note = buttons.operator("slide.add_note_line", text="", icon='ADD') ### icon: ADD
+                    op_add_note.slide_index = index
+
+                if note_idx > 0:
+                    op_rem_note = buttons.operator("slide.remove_note_line", text="", icon='TRASH') ### icon: TRASH
+                    op_rem_note.slide_index = index
+                    op_rem_note.note_index = note_idx
+                
+        else:
+            row_note = col.row(align=False)
+
+            note_label = row_note.column(align=False)
+            note_label.scale_x = 0.65
+            note_label.label(text="Note:")
+
+            note_field = row_note.column(align=False)
+            note_field.scale_x = 4.1
+            note_field.label(text="", icon='SYNTAX_OFF') ### icon: SYNTAX_OFF
+
+            buttons = row_note.row(align=True)
+            buttons.scale_x = 1
+            op_add_note = buttons.operator("slide.add_note_line", text="", icon='ADD') ### icon: ADD
+            op_add_note.slide_index = index
+
+        timing = card.box()
+        col = timing.column(align=False)
+
+        row_frames = col.row(align=True)
+
+        col_left = row_frames.column(align=False)
+        row_start = col_left.row(align=True)
+        row_start.prop(slide, "loop_start", text="In")
+        op_start = row_start.operator("scene.paste_current_frame", text="", icon='EYEDROPPER') ### icon: EYEDROPPER
+        op_start.slide_index = index
+        op_start.target_prop = "loop_start"
+
+        row_end = col_left.row(align=True)
+        row_end.prop(slide, "loop_end", text="Out")
+        op_end = row_end.operator("scene.paste_current_frame", text="", icon='EYEDROPPER') ### icon: EYEDROPPER
+        op_end.slide_index = index
+        op_end.target_prop = "loop_end"
+
+        col_right = row_frames.column(align=False)
+        row_trans = col_right.row(align=False)
+        row_trans.prop(slide, "transition", text="Transition")
+
+        row_cam = col_right.row(align=False)
+        row_cam.prop(slide, "camera_object", text="")
+
+        checkpoints = card.box()
+        col = checkpoints.column(align=False)
+        row_cp_header = col.row(align=False)
+        row_cp_header.label(text="Add Checkpoint", icon='BOOKMARKS') ### icon: BOOKMARKS
+        op_add_cp = row_cp_header.operator("slide.add_checkpoint", text="", icon='ADD') ### icon: ADD
+        op_add_cp.slide_index = index
+
+        for cp_idx, cp in enumerate(slide.checkpoint_frames):
+            row_cp = col.row(align=False)
+            row_cp.label(text=f"        {cp_idx + 1:02d}")
+            row_cp.label(text=f"Stop at: {cp.frame}") ### icon: BOOKMARKS
+            row_cp.prop(cp, "tag", text="", icon_only=True)
+            op_rem_cp = row_cp.operator("slide.remove_checkpoint", text="", icon='TRASH') ### icon: TRASH
+            op_rem_cp.slide_index = index
+            op_rem_cp.cp_index = cp_idx
+
     def draw(self, context):
         layout = self.layout
         scene = context.scene
         slides = scene.slides_collection
-        current_idx = scene.slide_index
 
-        row_add = layout.row() 
-        row_add.scale_y = 1.3
-        row_add.operator("scene.add_slide", text="➕ Add Slide")
-        layout.separator()
+        layout.use_property_split = False
+        layout.use_property_decorate = False
+
+        top_split = layout.split(factor=0.67, align=True)
+
+        add_col = top_split.column(align=True)
+        add_col.scale_y = 1.2
+        add_col.operator("scene.add_slide", text="", icon='ADD') ### icon: ADD
+
+        trash_col = top_split.column(align=True)
+        trash_col.scale_y = 1.2
+        trash_col.enabled = bool(slides)
+        op_rem = trash_col.operator("scene.remove_slide", text="", icon='TRASH') ### icon: TRASH
+        op_rem.index_to_remove = scene.slide_index if slides else 0
 
         if not slides:
-            layout.label(text="No Slides yet :(") 
+            empty = layout.box()
+            empty_col = empty.column(align=True)
+            empty_col.alignment = 'CENTER'
+            empty_col.label(text="No slides yet", icon='INFO') ### icon: INFO
+            empty_col.label(text="Create the first slide to start.")
+            return
 
-        for i, slide in enumerate(slides):
-            box = layout.box()
-            
-            if i == current_idx: box.active = True
-            
-            # --- Header Row (Metodo robusto a 3 parti) ---
-            row_header = box.row() 
+        list_box = layout.box()
+        list_box.template_list(
+            "SLIDES_UL_slide_list",
+            "",
+            scene,
+            "slides_collection",
+            scene,
+            "slide_index",
+            rows=scene.slide_list_rows,
+            maxrows=20,
+        )
 
-            # Parte Sinistra (Collapse + Tag)
-            row_left = row_header.row(align=True)
-            row_left.alignment = 'LEFT'
-            
-            # --- MODIFICA QUI ---
-            # 1. Aggiungi l'icona ATTIVA a row_left (PRIMA del triangolo)
-            icon_active = 'RECORD_ON' if i == current_idx else 'BLANK1'
-            row_left.label(text="", icon=icon_active)
-            
-            # 2. Aggiungi il triangolo COLLAPSE a row_left
-            icon_collapse = 'TRIA_DOWN' if not slide.is_collapsed else 'TRIA_RIGHT'
-            row_left.prop(slide, "is_collapsed", text="", icon=icon_collapse, emboss=False)
-            
-            # 3. Aggiungi il TAG a row_left
-            op_tag_slide = row_left.operator("slide.cycle_tag", text="", icon=slide.tag, emboss=False) # Messo emboss=False per coerenza
-            op_tag_slide.slide_index = i
-            
-            # Parte Centrale (Titolo - Elastico)
-            # Aggiungi il titolo a row_header (la riga principale)
-            # Ho rimosso l'icona da qui, visto che l'abbiamo messa a sinistra
-            row_header.label(text=f"{i + 1}. {slide.title}")
-            
-            # Parte Destra (Bottoni)
-            row_right = row_header.row(align=True)
-            row_right.alignment = 'RIGHT'
-            op_rem = row_right.operator("scene.remove_slide", text="", icon='TRASH')
-            op_rem.index_to_remove = i
-            row_right.separator(factor=0.5)
-            op_goto = row_right.operator("scene.goto_slide", text="", icon='RESTRICT_SELECT_OFF')
-            op_goto.index_to_go = i
-            
-            
-            if not slide.is_collapsed:
-                col = box.column(align=True)
-                col.separator()
-                
-                # --- Titolo e Note ---
-                row_title = col.row(align=True)
-                row_title.label(text="", icon='SMALL_CAPS')
-                row_title.prop(slide, "title", text="")
-                
-                row_notes_header = col.row(align=True)
-                row_notes_header.label(text="", icon='FILE_TEXT')
-                if slide.notes:
-                    first_note = slide.notes[0]
-                    row_notes_header.prop(first_note, "text", text="")
-                    op_add_note = row_notes_header.operator("slide.add_note_line", text="", icon='ADD'); op_add_note.slide_index = i
-                    op_rem_first_note = row_notes_header.operator("slide.remove_note_line", text="", icon='REMOVE'); op_rem_first_note.slide_index = i; op_rem_first_note.note_index = 0
-                else:
-                    row_notes_header.label(text="Add a note...")
-                    op_add_note = row_notes_header.operator("slide.add_note_line", text="", icon='ADD'); op_add_note.slide_index = i
+        active_index = scene.slide_index
+        if active_index < 0 or active_index >= len(slides):
+            active_index = 0
+        slide = slides[active_index]
 
-                col_notes = col.column(align=True)
-                if len(slide.notes) > 1:
-                    for note_idx in range(1, len(slide.notes)):
-                        note_line = slide.notes[note_idx]
-                        row_note = col_notes.row(align=True)
-                        row_note.label(text="", icon='BLANK1')
-                        row_note.prop(note_line, "text", text="")
-                        op_rem_note = row_note.operator("slide.remove_note_line", text="", icon='REMOVE'); op_rem_note.slide_index = i; op_rem_note.note_index = note_idx
-                
-                col.separator()
+        detail_box = layout.box()
+        header = detail_box.row(align=False)
+        detail_icon = 'TRIA_DOWN' if scene.slide_details_expanded else 'TRIA_RIGHT'
+        header.prop(scene, "slide_details_expanded", text="Selected Slide", icon=detail_icon, emboss=False) ### icon: detail_icon
 
-# --- Frames & Camera (Collassabile) ---
-                row_frames_header = col.row(align=True) # Usiamo align=True per compattare
-                
-                # 1. Disegna il triangolo (prop senza testo)
-                icon_frames = 'TRIA_DOWN' if not slide.is_frames_collapsed else 'TRIA_RIGHT'
-                row_frames_header.prop(slide, "is_frames_collapsed", text="", icon=icon_frames, emboss=False)
-                
-                # 2. Disegna l'etichetta IN/OUT/TRANS (sempre visibile)
-                row_frames_header.label(text=f"In: {slide.loop_start} | Out: {slide.loop_end} | Trans: {slide.transition}")
-                
-                # Mostra i controlli solo se la tendina è APERTA (if NOT collapsed)
-                if not slide.is_frames_collapsed:
-                    row_frames = col.row()
-                    row_frames.separator(factor=2.0) # Indentazione
-                    
-                    col_left_frames = row_frames.column()
-                    row_start = col_left_frames.row(align=True); row_start.label(text="", icon='AREA_JOIN_DOWN'); row_start.prop(slide, "loop_start", text="In"); op_start = row_start.operator("scene.paste_current_frame", text="", icon='EYEDROPPER'); op_start.slide_index = i; op_start.target_prop = "loop_start"
-                    row_end = col_left_frames.row(align=True); row_end.label(text="", icon='AREA_JOIN_UP'); row_end.prop(slide, "loop_end", text="Out"); op_end = row_end.operator("scene.paste_current_frame", text="", icon='EYEDROPPER'); op_end.slide_index = i; op_end.target_prop = "loop_end"
-                    
-                    col_right_trans = row_frames.column(align=True)
-                    row_trans = col_right_trans.row(align=True); row_trans.label(text="", icon='ONIONSKIN_ON'); row_trans.prop(slide, "transition", text="Transition")
-                    row_cam = col_right_trans.row(align=True); row_cam.label(text="", icon='VIEW_CAMERA'); row_cam.prop(slide, "camera_object", text="")
-
-                col.separator()
-                
-                # --- Checkpoints (Sempre visibili) ---
-                row_cp_header = col.row()
-                row_cp_header.label(text="Checkpoints", icon='BOOKMARKS')
-                op_add_cp = row_cp_header.operator("slide.add_checkpoint", text="", icon='ADD')
-                op_add_cp.slide_index = i
-
-                row_cp_list = col.row()
-                col_cps = row_cp_list.column(align=True)
-
-                if not slide.checkpoint_frames:
-                    pass
-                    
-                for cp_idx, cp in enumerate(slide.checkpoint_frames):
-                    row_cp = col_cps.row(align=True)
-                    row_cp.label(text=f"{cp_idx+1}.")
-                    row_cp.prop(cp, "name", text="")
-                    row_cp.label(text=f"(f: {cp.frame})")                       
-                    op_tag_cp = row_cp.operator("checkpoint.cycle_tag", text="", icon=cp.tag, emboss=False); op_tag_cp.slide_index = i; op_tag_cp.cp_index = cp_idx
-                    op_rem_cp = row_cp.operator("slide.remove_checkpoint", text="", icon='REMOVE'); op_rem_cp.slide_index = i; op_rem_cp.cp_index = cp_idx
+        if scene.slide_details_expanded:
+            self._draw_selected_slide_details(detail_box, scene, slide, active_index)
 
 
 class SLIDES_PT_controlli(bpy.types.Panel):
-    bl_label = "Control Panel"
+    bl_label = "Controller"
     bl_idname = "SCENE_PT_slides_controlli"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Slides Pro"
+    bl_category = "Slides PRO"
     bl_order = 2
- 
+
     def draw_header(self, context):
-        self.layout.label(text="", icon='WORKSPACE')
- 
+        self.layout.label(text="", icon='WORKSPACE') ### icon: WORKSPACE
+
     def draw(self, context):
         layout = self.layout
         scene = context.scene
         screen = context.screen if hasattr(context, "screen") else bpy.context.screen
-        
-        row_nav = layout.row(align=True)
-        row_nav.scale_y = 1.3 # Mantengo 1.3 per l'altezza
-        
-        # --- Pulsante Hard-Skip Sinistro (Più largo) ---
+        slides = scene.slides_collection
+
+        layout.use_property_split = False
+        layout.use_property_decorate = False
+
+        status_box = layout.box()
+        status = status_box.column(align=True)
+        if slides and 0 <= scene.slide_index < len(slides):
+            slide_name = slides[scene.slide_index].title or "Untitled Slide"
+            status.label(text=f"Current Slide {scene.slide_index + 1}/{len(slides)}", icon='RESTRICT_VIEW_OFF') ### icon: RESTRICT_VIEW_OFF
+            status.label(text=slide_name)
+        else:
+            status.label(text="No active slide", icon='INFO') ### icon: INFO
+
+        nav_box = layout.box()
+        row_nav = nav_box.row(align=True)
+        row_nav.scale_y = 1.35
+
         col_prev_hard = row_nav.column()
-        col_prev_hard.scale_x = 1.3 # <-- Aumentato (da 1.2)
-        op_prev_hard = col_prev_hard.operator("scene.hard_skip_slide", text="", icon='PREV_KEYFRAME')
+        col_prev_hard.scale_x = 1.2
+        op_prev_hard = col_prev_hard.operator("scene.hard_skip_slide", text="", icon='PREV_KEYFRAME') ### icon: PREV_KEYFRAME
         op_prev_hard.direction = -1
-        
-        # --- Pulsante REW (Più largo) ---
+
         col_rew = row_nav.column()
-        col_rew.scale_x = 1.6  # <-- Aumentato (da 1.5)
-        col_rew.operator("scene.prev_slide", text="", icon='REW')
-        
-        
-        # --- Pulsante Play/Pausa (Più stretto) ---
+        col_rew.scale_x = 1.4
+        col_rew.operator("scene.prev_slide", text="", icon='REW') ### icon: REW
+
         row_play = row_nav.row(align=True)
-        row_play.scale_x = 0.6  # <-- Ristretto (da 0.7)
-        slides = scene.slides_collection 
-        
+        row_play.scale_x = 1.0
+
         if scene.is_paused_at_checkpoint:
-            row_play.operator("scene.next_slide", text="Continue", icon='PLAY')
+            row_play.operator("scene.next_slide", text="Continue", icon='PLAY') ### icon: PLAY
         elif scene.slide_transition_requested or scene.slide_prev_requested:
             row_wait = row_play.row()
             row_wait.enabled = False
-            row_wait.operator("screen.animation_play", text="Waiting...", icon='SORTTIME')
+            row_wait.operator("screen.animation_play", text="Waiting", icon='SORTTIME') ### icon: SORTTIME
         elif scene.is_transitioning:
             row_trans = row_play.row()
             row_trans.enabled = False
-            row_trans.operator("screen.animation_play", text="Transition...", icon='ONIONSKIN_ON')
+            row_trans.operator("screen.animation_play", text="Transition", icon='ONIONSKIN_ON') ### icon: ONIONSKIN_ON
         elif screen and getattr(screen, "is_animation_playing", False):
-            row_play.operator("scene.stop_slides_presentation", text="STOP ◉", icon='RECORD_ON') 
+            row_play.operator("scene.stop_slides_presentation", text="Stop", icon='PAUSE') ### icon: PAUSE
         else:
-            op_play = row_play.operator("scene.start_slides_presentation", text="START ▶️", icon='PLAY')
+            op_play = row_play.operator("scene.start_slides_presentation", text="Start", icon='PLAY') ### icon: PLAY
             op_play.index_to_start = scene.slide_index
 
-        # --- Pulsante FF (Più largo) ---
         col_ff = row_nav.column()
-        col_ff.scale_x = 1.6  # <-- Aumentato (da 1.5)
-        col_ff.operator("scene.next_slide", text="", icon='FF')
+        col_ff.scale_x = 1.4
+        col_ff.operator("scene.next_slide", text="", icon='FF') ### icon: FF
 
-        # --- Pulsante Hard-Skip Destro (Più largo) ---
         col_next_hard = row_nav.column()
-        col_next_hard.scale_x = 1.3 # <-- Aumentato (da 1.2)
-        op_next_hard = col_next_hard.operator("scene.hard_skip_slide", text="", icon='NEXT_KEYFRAME')
+        col_next_hard.scale_x = 1.2
+        op_next_hard = col_next_hard.operator("scene.hard_skip_slide", text="", icon='NEXT_KEYFRAME') ### icon: NEXT_KEYFRAME
         op_next_hard.direction = 1
 
-        row_status = layout.row(align=True)
-        
-        if slides and 0 <= scene.slide_index < len(slides):
-            slide_name = slides[scene.slide_index].title
-            row_status.label(text=f"🎞 {scene.slide_index + 1}/{len(slides)}: {slide_name}")
-        else:
-            row_status.label(text="🎞 No Slide: 0/0")
-            
-        row_status.operator("wm.new_projection_window", text="Open Projection Window", icon='WINDOW')
+        view_box = layout.box()
+        view_row = view_box.row(align=True)
+        view_row.scale_y = 1.1
+
+        overlay_text = "Hide Overlays"
+        rendered_text = "Rendered View"
+        try:
+            if context.space_data and context.space_data.type == 'VIEW_3D':
+                overlay_text = "Show Overlays" if scene.slides_clean_overlays_on else "Hide Overlays"
+                rendered_text = "Solid View" if context.space_data.shading.type == 'RENDERED' else "Rendered View"
+        except Exception:
+            pass
+
+        view_row.operator("scene.slides_toggle_viewport_overlays", text=overlay_text, icon='OVERLAY') ### icon: OVERLAY
+        view_row.operator("scene.slides_toggle_rendered_view", text=rendered_text, icon='SHADING_RENDERED') ### icon: SHADING_RENDERED
+
+        projection = layout.row(align=True)
+        projection.scale_y = 1.15
+        projection.operator("wm.new_projection_window", text="Open Projection Window", icon='WINDOW') ### icon: WINDOW
 
 addon_keymaps = []
 def register_keymaps():
     wm = bpy.context.window_manager
-    km = wm.keyconfigs.addon.keymaps.new(name='3D View', space_type='VIEW_3D')
-    
+    keyconfig = getattr(wm.keyconfigs, "addon", None)
+    if keyconfig is None:
+        return
+
+    km = keyconfig.keymaps.new(name='3D View', space_type='VIEW_3D')
+
     kmi_next = km.keymap_items.new(NEXT_SLIDE_OT_operator.bl_idname, 'RIGHT_ARROW', 'PRESS', alt=True)
     kmi_prev = km.keymap_items.new(PREV_SLIDE_OT_operator.bl_idname, 'LEFT_ARROW', 'PRESS', alt=True)
-    
+
     kmi_hard_next = km.keymap_items.new(HARD_SKIP_SLIDE_OT_operator.bl_idname, 'RIGHT_ARROW', 'PRESS', alt=True, shift=True)
     kmi_hard_next.properties.direction = 1
     kmi_hard_prev = km.keymap_items.new(HARD_SKIP_SLIDE_OT_operator.bl_idname, 'LEFT_ARROW', 'PRESS', alt=True, shift=True)
     kmi_hard_prev.properties.direction = -1
-    
+
     addon_keymaps.extend([(km, kmi_next), (km, kmi_prev), (km, kmi_hard_next), (km, kmi_hard_prev)])
 
 def unregister_keymaps():
-    for km, kmi in addon_keymaps: 
+    for km, kmi in addon_keymaps:
         try:
             km.keymap_items.remove(kmi)
         except Exception:
@@ -1014,44 +1116,44 @@ classes = [
     START_PRESENTATION_OT_operator,
     STOP_PRESENTATION_OT_operator,
     WINDOW_OT_new_projection,
+    SLIDESPRO_OT_toggle_viewport_overlays,
+    SLIDESPRO_OT_toggle_rendered_view,
     CLEAR_ANNOTATIONS_OT_operator,
     ADD_CHECKPOINT_OT_operator,
     REMOVE_CHECKPOINT_OT_operator,
-    CYCLE_SLIDE_TAG_OT_operator,
-    CYCLE_CHECKPOINT_TAG_OT_operator,
     ADD_NOTE_LINE_OT_operator,
     REMOVE_NOTE_LINE_OT_operator,
-    SLIDES_PT_controlli,
-    SLIDES_PT_elenco,
     SLIDES_PT_impostazioni,
+    SLIDES_UL_slide_list,
+    SLIDES_PT_elenco,
+    SLIDES_PT_controlli,
 ]
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    
+
     bpy.types.Scene.slides_collection = CollectionProperty(type=SlideItem)
-    bpy.types.Scene.slide_index = IntProperty(default=0)
+    bpy.types.Scene.slide_index = IntProperty(default=0, update=update_slide_index)
     bpy.types.Scene.is_looping = BoolProperty(default=False)
     bpy.types.Scene.is_transitioning = BoolProperty(default=False)
     bpy.types.Scene.slide_transition_requested = BoolProperty(default=False)
-    bpy.types.Scene.slide_prev_requested = BoolProperty(False) 
+    bpy.types.Scene.slide_prev_requested = BoolProperty(default=False)
     bpy.types.Scene.transition_target_index = IntProperty()
     bpy.types.Scene.is_paused_at_checkpoint = BoolProperty(default=False)
     bpy.types.Scene.next_checkpoint_index = IntProperty(default=0)
-    
+
     bpy.types.Scene.slide_show_notes = BoolProperty(
         name="Show Notes in Overlay", default=True)
     bpy.types.Scene.slide_title_fontsize = IntProperty(
         name="Title Size", default=24, min=10, max=60)
     bpy.types.Scene.slide_note_fontsize = IntProperty(
         name="Notes Size", default=18, min=10, max=60)
-        
+
     bpy.types.Scene.slide_notes_position = EnumProperty(
         name="Notes Position",
         description="Set the corner for the notes overlay",
         items=[
-            # --- CORREZIONE: Testo ripristinato per il menu a tendina ---
             ('BOTTOM_LEFT', "Bottom Left", "Bottom Left", 'ANCHOR_BL', 0),
             ('TOP_LEFT', "Top Left", "Top Left", 'ANCHOR_TL', 1),
             ('BOTTOM_RIGHT', "Bottom Right", "Bottom Right", 'ANCHOR_BR', 2),
@@ -1059,33 +1161,38 @@ def register():
         ],
         default='BOTTOM_LEFT'
     )
-    
+
     bpy.types.Scene.slide_info_expanded = BoolProperty(
         name="Show Info", default=False)
-    
+    bpy.types.Scene.slide_details_expanded = BoolProperty(
+        name="Show Selected Slide Settings", default=False)
+    bpy.types.Scene.slide_list_rows = IntProperty(
+        name="Rows", default=6, min=3, max=20)
+    bpy.types.Scene.slides_clean_overlays_on = BoolProperty(
+        name="Clean View", default=False)
+
+    for scene in bpy.data.scenes:
+        ensure_scene_slide_notes(scene)
+
     register_keymaps()
-    
-    print(f"✅ Slides Pro v{bl_info['version']} ACTIVE")
+
+    print(f"{ADDON_NAME} v{ADDON_VERSION} active")
 
 def unregister():
     unregister_keymaps()
     unregister_loop_handler()
     unregister_transition_handler()
     unregister_notes_handler()
-    
-    for cls in reversed(classes):
-        try: bpy.utils.unregister_class(cls)
-        except Exception:
-            pass 
-    
+
     props_to_del = [
         "slides_collection", "slide_index", "is_looping", "is_transitioning",
-        "slide_transition_requested", "slide_prev_requested", 
-        "transition_target_index", "is_paused_at_checkpoint", 
-        "next_checkpoint_index", "slide_show_notes", 
+        "slide_transition_requested", "slide_prev_requested",
+        "transition_target_index", "is_paused_at_checkpoint",
+        "next_checkpoint_index", "slide_show_notes",
         "slide_title_fontsize", "slide_note_fontsize",
         "slide_notes_position",
-        "slide_info_expanded"
+        "slide_info_expanded", "slide_details_expanded",
+        "slide_list_rows", "slides_clean_overlays_on"
     ]
     for prop in props_to_del:
         if hasattr(bpy.types.Scene, prop):
@@ -1093,5 +1200,17 @@ def unregister():
                 delattr(bpy.types.Scene, prop)
             except Exception:
                 pass
-        
-    print(f"❌ Slides Pro v{bl_info['version']} DEACTIVATED")
+
+    for cls in reversed(classes):
+        try: bpy.utils.unregister_class(cls)
+        except Exception:
+            pass
+
+    print(f"{ADDON_NAME} v{ADDON_VERSION} deactivated")
+
+if __name__ == "__main__":
+    try:
+        unregister()
+    except Exception:
+        pass
+    register()

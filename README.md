@@ -1,88 +1,92 @@
-# Slides Pro
+# Slides PRO
 
-Slides Pro is a PowerPoint-style presentation add-on for Blender.
+Slides PRO is a slide-based presentation add-on for Blender's 3D View.
 
-It lets you turn a Blender scene into a live slide deck: each slide can have its own frame range, camera, notes, checkpoints, and transition timing. The goal is to present animation, layout, previz, storyboards, lectures, breakdowns, or 3D projects directly from the 3D View, without exporting everything to a separate presentation app.
+It lets you create, organize, and play presentations directly inside a 3D scene using cameras, timeline ranges, speaker notes, checkpoints, viewport controls, and scene objects.
 
-## What it does
+## Features
 
-- Create a list of slides inside the 3D View sidebar.
-- Assign each slide a start frame, end frame, title, notes, and optional camera.
-- Play slides as looping frame ranges.
-- Move to the next or previous slide with smart transitions.
-- Add checkpoints inside a slide to pause playback at specific frames.
-- Open a clean projection window for presenting to an audience or a second monitor.
-- Display presenter notes as an overlay in the viewport.
-- Navigate with UI buttons or keyboard shortcuts.
-- Start playback handlers only when the presentation is launched manually.
+- Create and manage slide-based presentations inside the 3D View
+- Use timeline ranges as slide sections
+- Use cameras as slide viewpoints
+- Select a slide from the list and jump directly to its start frame
+- Add speaker notes and display them as a viewport overlay
+- Add checkpoints to pause during a slide
+- Navigate with presentation controls or keyboard shortcuts
+- Use visual color tags to organize slides
+- Toggle a clean presentation view while keeping notes visible
+- Toggle Rendered/Solid viewport mode from the controller
+- Open a dedicated projection window
 
-## Typical use cases
+## What's new in 1.6.0
 
-- Presenting a 3D project directly inside Blender.
-- Building a lecture, demo, or class presentation from a Blender scene.
-- Showing an animated storyboard or previz sequence.
-- Creating a portfolio presentation with multiple cameras and animated transitions.
-- Using Blender as a visual presentation tool instead of a traditional slide editor.
+- Better UI for slide management
+- Cleaner and more compact slide list
+- Active slide indicator
+- Visual color tags for slides
+- Add/Delete slide controls moved above the slide list
+- Selected slide details panel improved
+- Better alignment for Title and Note fields
+- Safer handling of empty and multiple notes
+- Fixed note deletion so the correct note row is removed
+- Selecting a slide now jumps to its frame in the timeline
+- Clean View overlay toggle improved for presentation mode
+- Extension package cleaned for Blender Extensions submission
+- Manifest uses only the 3D View tag
 
 ## Installation
 
 ### From Blender Extensions
 
-1. Download the extension ZIP.
+Install the add-on from the Blender Extensions platform when it becomes available.
+
+### Manual install
+
+1. Download the extension zip.
 2. Open Blender.
-3. Go to `Edit > Preferences > Extensions`.
-4. Install the ZIP file.
-5. Enable **Slides Pro**.
-
-### Manual installation
-
-1. Download or clone this repository.
-2. Put the add-on folder in your Blender add-ons directory, or install the ZIP from Blender preferences.
-3. Enable **Slides Pro** from the Extensions/Add-ons preferences.
-
-## Location
-
-Open the 3D View, press `N`, then open the **Slides Pro** tab.
+3. Go to `Edit > Preferences > Add-ons`.
+4. Use `Install from Disk` and select the zip file.
+5. Enable **Slides PRO**.
+6. Open the 3D View sidebar and find the **Slides PRO** tab.
 
 ## Basic workflow
 
-1. Create or animate your scene.
-2. Add a slide from the Slides Pro panel.
-3. Set the slide frame range.
-4. Optionally assign a camera, title, notes, and checkpoints.
-5. Repeat for all slides.
-6. Press **Start** to begin the presentation.
-7. Use the navigation buttons or shortcuts to move through the deck.
-8. Use **Projection Window** for a clean presentation viewport.
+1. Create a slide.
+2. Set its frame range with `In` and `Out`.
+3. Assign a camera if needed.
+4. Add notes and checkpoints.
+5. Select slides from the list to jump through the timeline.
+6. Use the Controller panel to start, stop, navigate, and present.
 
-## Shortcuts
+## Keyboard shortcuts
 
-- `Alt + Right Arrow`: next slide / continue from checkpoint
-- `Alt + Left Arrow`: previous slide
-- `Shift + Alt + Right Arrow`: hard skip forward, without transition
-- `Shift + Alt + Left Arrow`: hard skip backward, without transition
+- Previous / Next Slide: `Alt + Left Arrow` / `Alt + Right Arrow`
+- Skip Transition: `Shift + Alt + Left Arrow` / `Shift + Alt + Right Arrow`
 
-## Notes and checkpoints
+## Blender Extensions notes
 
-Slides can include notes that appear as a viewport overlay. Checkpoints pause playback at chosen frames, which is useful for explaining animation steps, before/after states, or different phases of a scene.
+The extension package should only include the files required to run the add-on:
 
-## Handler behavior
+```text
+__init__.py
+blender_manifest.toml
+```
 
-Slides Pro does not register presentation playback handlers on Blender startup. Handlers are enabled only when the user starts a presentation and are removed when the presentation is stopped or the add-on is disabled.
+The manifest should use only the `3D View` tag.
 
 ## Support
 
-Use GitHub Issues for bug reports and feature requests.
+Please report bugs and feature requests through GitHub Issues.
 
-When reporting a bug, please include:
+When reporting a bug, include:
 
 - Blender version
 - Operating system
-- Slides Pro version
+- Slides PRO version
 - Steps to reproduce the issue
-- A screenshot or screen recording, when useful
-- The console error, if available
+- Console error, if available
+- Example `.blend` file, if useful
 
 ## License
 
-Slides Pro is released under the GNU General Public License v3.0 or later.
+GPL-3.0-or-later.
