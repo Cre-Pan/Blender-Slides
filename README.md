@@ -1,6 +1,6 @@
-# Slides PRO
+# Blender Slides
 
-Slides PRO is a slide-based presentation add-on for Blender's 3D View.
+Blender Slides is a slide-based presentation add-on for Blender's 3D View.
 
 It lets you create, organize, and play presentations directly inside a 3D scene using cameras, timeline ranges, speaker notes, checkpoints, viewport controls, and scene objects.
 
@@ -18,21 +18,20 @@ It lets you create, organize, and play presentations directly inside a 3D scene 
 - Toggle Rendered/Solid viewport mode from the controller
 - Open a dedicated projection window
 
-## What's new in 1.6.0
+## What's new in 1.6.1
 
-- Better UI for slide management
-- Cleaner and more compact slide list
-- Active slide indicator
-- Visual color tags for slides
-- Add/Delete slide controls moved above the slide list
-- Selected slide details panel improved
-- Better alignment for Title and Note fields
-- Safer handling of empty and multiple notes
-- Fixed note deletion so the correct note row is removed
-- Selecting a slide now jumps to its frame in the timeline
-- Clean View overlay toggle improved for presentation mode
-- Extension package cleaned for Blender Extensions submission
-- Manifest uses only the 3D View tag
+- Updated version metadata for Blender Extensions release.
+- Slide selection now updates the timeline cursor and the scene In/Out frame range.
+- Added optional **Autoplay When Selected Slide** setting.
+- Color tag selector in selected slide settings is now icon-only.
+- Cleaner and more compact slide list.
+- Active slide indicator and visual color tags.
+- Selected slide details panel improved.
+- Safer handling of empty and multiple notes.
+- Fixed note deletion so the correct note row is removed.
+- Clean View overlay toggle improved for presentation mode.
+- Extension package cleaned for Blender Extensions submission.
+- Manifest uses only the 3D View tag.
 
 ## Installation
 
@@ -46,8 +45,8 @@ Install the add-on from the Blender Extensions platform when it becomes availabl
 2. Open Blender.
 3. Go to `Edit > Preferences > Add-ons`.
 4. Use `Install from Disk` and select the zip file.
-5. Enable **Slides PRO**.
-6. Open the 3D View sidebar and find the **Slides PRO** tab.
+5. Enable **Blender Slides**.
+6. Open the 3D View sidebar and find the **Blender Slides** tab.
 
 ## Basic workflow
 
@@ -76,13 +75,13 @@ The manifest should use only the `3D View` tag.
 
 ## Support
 
-Please report bugs and feature requests through GitHub Issues.
+Please report bugs and feature requests through GitHub Issues: https://github.com/Cre-Pan/Blender-Slides/issues
 
 When reporting a bug, include:
 
 - Blender version
 - Operating system
-- Slides PRO version
+- Blender Slides version
 - Steps to reproduce the issue
 - Console error, if available
 - Example `.blend` file, if useful

@@ -1,15 +1,15 @@
 bl_info = {
-    "name": "Slides PRO Layout Test",
+    "name": "Blender Slides",
     "author": "Alessandro Pannoli",
-    "version": (1, 6, 0),
+    "version": (1, 6, 2),
     "blender": (4, 2, 0),
-    "location": "View3D > Sidebar > Slides PRO",
-    "description": "Single-file test build for adjusting the Slides PRO layout inside the 3D View.",
+    "location": "View3D > Sidebar > Blender Slides",
+    "description": "Create and play slide-based presentations in the 3D View.",
     "category": "3D View",
 }
 
-ADDON_NAME = "Slides PRO"
-ADDON_VERSION = (1, 6, 0)
+ADDON_NAME = "Blender Slides"
+ADDON_VERSION = (1, 6, 2)
 
 import bpy
 import blf
@@ -35,6 +35,7 @@ TAG_ICON_ITEMS = (
 )
 
 TAG_ICON_MAP = {item[0]: item[3] for item in TAG_ICON_ITEMS}
+_suppress_slide_index_update_autoplay = False
 
 def tag_icon(tag):
     return TAG_ICON_MAP.get(tag, 'CHECKBOX_DEHLT')
@@ -59,9 +60,35 @@ def update_slide_index(self, context):
     if slides and 0 <= self.slide_index < len(slides):
         slide = slides[self.slide_index]
         ensure_slide_has_note(slide)
+
+        self.frame_start = slide.loop_start
+        self.frame_end = slide.loop_end
         self.frame_current = slide.loop_start
+
         if slide.camera_object:
             self.camera = slide.camera_object
+
+        for i, s in enumerate(slides):
+            s.is_collapsed = (i != self.slide_index)
+
+        if getattr(self, "slides_autoplay_on_select", False) and not _suppress_slide_index_update_autoplay:
+            self.is_transitioning = False
+            self.slide_transition_requested = False
+            self.slide_prev_requested = False
+            self.is_paused_at_checkpoint = False
+            self.next_checkpoint_index = 0
+            self.is_looping = True
+            register_notes_handler()
+            unregister_transition_handler()
+            register_loop_handler()
+            try:
+                screen = getattr(context, "screen", None) if context else None
+                is_playing = bool(screen and getattr(screen, "is_animation_playing", False))
+                if not is_playing:
+                    bpy.ops.screen.animation_play()
+            except Exception:
+                pass
+
         force_ui_redraw(context)
 
 
@@ -70,6 +97,28 @@ def ensure_scene_slide_notes(scene):
     if slides:
         for slide in slides:
             ensure_slide_has_note(slide)
+
+
+def get_annotation_data(context):
+    """Return the active annotation datablock across Blender API versions.
+
+    Blender 5.x no longer exposes annotation_data on SpaceView3D, so never
+    access context.space_data.annotation_data directly.
+    """
+    scene = getattr(context, "scene", None) if context else None
+    if scene is not None:
+        grease_pencil = getattr(scene, "grease_pencil", None)
+        if grease_pencil is not None:
+            return grease_pencil
+
+    # Legacy fallback for older Blender versions. Use getattr to avoid
+    # AttributeError on Blender 5.x SpaceView3D.
+    space = getattr(context, "space_data", None) if context else None
+    annotation_data = getattr(space, "annotation_data", None)
+    if annotation_data is not None:
+        return annotation_data
+
+    return getattr(context, "annotation_data", None) if context else None
 
 
 def update_smart_transition(self, context):
@@ -112,8 +161,9 @@ def calc_transition(slides, current_index):
     return max(0, next_start - cur_end)
 
 def force_ui_redraw(context):
-    if context.screen:
-        for area in context.screen.areas:
+    screen = getattr(context, "screen", None) if context else None
+    if screen:
+        for area in screen.areas:
             if area.type == 'VIEW_3D':
                 for region in area.regions:
                     if region.type == 'UI':
@@ -143,7 +193,13 @@ def go_to_loop(scene, index):
     scene.frame_start = slide.loop_start
     scene.frame_end = slide.loop_end
     scene.frame_current = slide.loop_start
-    scene.slide_index = index
+
+    global _suppress_slide_index_update_autoplay
+    _suppress_slide_index_update_autoplay = True
+    try:
+        scene.slide_index = index
+    finally:
+        _suppress_slide_index_update_autoplay = False
 
     if slide.camera_object:
         scene.camera = slide.camera_object
@@ -360,9 +416,9 @@ def register_notes_handler():
                     'POST_PIXEL'
                 )
             except Exception as e:
-                print(f"Slides PRO: Could not attach to 3D View for notes. {e}")
+                print(f"Blender Slides: Could not attach to 3D View for notes. {e}")
         else:
-            print("Slides PRO: SpaceView3D type not available.")
+            print("Blender Slides: SpaceView3D type not available.")
 
 def unregister_notes_handler():
     global _notes_draw_handler
@@ -676,15 +732,21 @@ class CLEAR_ANNOTATIONS_OT_operator(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        if context.space_data and context.space_data.type == 'VIEW_3D':
-            return context.space_data.annotation_data is not None
-        return False
+        space = getattr(context, "space_data", None)
+        if not space or getattr(space, "type", None) != 'VIEW_3D':
+            return False
+        gpd = get_annotation_data(context)
+        return bool(gpd and getattr(gpd, "layers", None))
 
     def execute(self, context):
-        gpd = context.space_data.annotation_data
-        if gpd:
-            for layer in gpd.layers:
+        gpd = get_annotation_data(context)
+        if not gpd:
+            return {'CANCELLED'}
+        for layer in getattr(gpd, "layers", []):
+            try:
                 layer.frames.clear()
+            except Exception:
+                pass
         return {'FINISHED'}
 
 class ADD_CHECKPOINT_OT_operator(bpy.types.Operator):
@@ -762,7 +824,7 @@ class SLIDES_PT_impostazioni(bpy.types.Panel):
     bl_idname = "SCENE_PT_slides_impostazioni"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Slides PRO"
+    bl_category = "Blender Slides"
     bl_order = 0
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -781,6 +843,9 @@ class SLIDES_PT_impostazioni(bpy.types.Panel):
         row = col.row(align=False)
         row.prop(scene, "slide_show_notes", text="Show Notes", icon='HIDE_OFF', toggle=True) ### icon: HIDE_OFF
         row.prop(scene, "slide_notes_position",  text="", icon='FILE_TEXT')
+
+        row = col.row(align=False)
+        row.prop(scene, "slides_autoplay_on_select", text="Autoplay When Selected Slide", icon='PLAY', toggle=True) ### icon: PLAY
 
         sizes = col.column(align=False)
         row = sizes.row(align=False)
@@ -825,7 +890,7 @@ class SLIDES_PT_elenco(bpy.types.Panel):
     bl_idname = "SCENE_PT_slides_elenco"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Slides PRO"
+    bl_category = "Blender Slides"
     bl_order = 1
 
     def draw_header(self, context):
@@ -848,7 +913,7 @@ class SLIDES_PT_elenco(bpy.types.Panel):
 
         tag_field = row_title.column(align=False)
         tag_field.scale_x = 1.5
-        tag_field.prop(slide, "tag", text="", icon_only=False)
+        tag_field.prop(slide, "tag", text="", icon_only=True)
 
         if slide.notes:
             for note_idx, note_line in enumerate(slide.notes):
@@ -990,7 +1055,7 @@ class SLIDES_PT_controlli(bpy.types.Panel):
     bl_idname = "SCENE_PT_slides_controlli"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Slides PRO"
+    bl_category = "Blender Slides"
     bl_order = 2
 
     def draw_header(self, context):
@@ -1162,6 +1227,12 @@ def register():
         default='BOTTOM_LEFT'
     )
 
+    bpy.types.Scene.slides_autoplay_on_select = BoolProperty(
+        name="Autoplay When Selected Slide",
+        description="Start playback automatically when a slide is selected from the slide list",
+        default=False
+    )
+
     bpy.types.Scene.slide_info_expanded = BoolProperty(
         name="Show Info", default=False)
     bpy.types.Scene.slide_details_expanded = BoolProperty(
@@ -1171,10 +1242,7 @@ def register():
     bpy.types.Scene.slides_clean_overlays_on = BoolProperty(
         name="Clean View", default=False)
 
-    for scene in bpy.data.scenes:
-        ensure_scene_slide_notes(scene)
 
-    register_keymaps()
 
     print(f"{ADDON_NAME} v{ADDON_VERSION} active")
 
@@ -1190,7 +1258,7 @@ def unregister():
         "transition_target_index", "is_paused_at_checkpoint",
         "next_checkpoint_index", "slide_show_notes",
         "slide_title_fontsize", "slide_note_fontsize",
-        "slide_notes_position",
+        "slide_notes_position", "slides_autoplay_on_select",
         "slide_info_expanded", "slide_details_expanded",
         "slide_list_rows", "slides_clean_overlays_on"
     ]

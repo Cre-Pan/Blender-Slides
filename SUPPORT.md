@@ -1,12 +1,12 @@
 # Support
 
-Please report bugs and feature requests through GitHub Issues.
+Please report bugs and feature requests through GitHub Issues: https://github.com/Cre-Pan/Blender-Slides/issues
 
 Include:
 
 - Blender version
 - Operating system
-- Slides PRO version
+- Blender Slides version
 - Steps to reproduce the issue
 - Console error, if available
 - A small example `.blend` file, if useful

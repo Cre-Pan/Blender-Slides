@@ -2,15 +2,23 @@
 
 ## Name
 
-Slides PRO
+Blender Slides
 
 ## Tagline
 
 Create and play slide-based presentations in the 3D View
 
+## Website
+
+https://github.com/Cre-Pan/Blender-Slides
+
+## Report Issues
+
+https://github.com/Cre-Pan/Blender-Slides/issues
+
 ## Description
 
-Slides PRO is a presentation workflow add-on for the 3D View.
+Blender Slides is a presentation workflow add-on for the 3D View.
 
 It allows users to build and play slide-based presentations directly inside a scene. Users can use cameras, timeline ranges, text, objects, lights, images, annotations, notes, and scene elements as part of a visual presentation.
 
@@ -28,11 +36,11 @@ Main features:
 - Toggle Rendered/Solid View from the controller
 - Open a dedicated projection window
 
-Slides PRO is useful for portfolio presentations, project pitches, visual lessons, art and design reviews, storyboard presentations, concept presentations, creative talks, and scene-based demonstrations.
+Blender Slides is useful for portfolio presentations, project pitches, visual lessons, art and design reviews, storyboard presentations, concept presentations, creative talks, and scene-based demonstrations.
 
 ## Version history
 
-1.6.0
+1.6.1
 
 Improved UI and Blender Extensions preparation update.
 

@@ -1,14 +1,14 @@
 schema_version = "1.0.0"
 id = "slides_pro"
-version = "1.6.0"
-name = "Slides PRO"
+version = "1.6.2"
+name = "Blender Slides"
 tagline = "Create and play slide-based presentations in the 3D View"
 maintainer = "Alessandro Pannoli"
 type = "add-on"
 tags = ["3D View"]
 blender_version_min = "4.2.0"
 license = ["SPDX:GPL-3.0-or-later"]
-website = "https://github.com/AlessandroPannoli/slides-pro"
+website = "https://github.com/Cre-Pan/Blender-Slides"
 copyright = ["2026 Alessandro Pannoli"]
 
 [build]
@@ -22,5 +22,7 @@ paths_exclude_pattern = [
   "README*",
   "CHANGELOG*",
   "SUPPORT*",
+  "CONTRIBUTING*",
+  "LICENSE*",
   "EXTENSION_SUBMISSION_TEXTS.md",
 ]
